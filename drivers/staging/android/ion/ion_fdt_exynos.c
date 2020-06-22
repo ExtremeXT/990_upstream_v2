@@ -52,7 +52,7 @@ static inline int exynos_cma_init_reserved_mem(phys_addr_t base, phys_addr_t siz
 
 #ifdef CONFIG_ION_RBIN_HEAP
 
-bool need_ion_rbin_heap()
+bool need_ion_rbin_heap(void)
 {
 #ifdef CONFIG_ION_RBIN_ONLY_FOR_UNDER_8GB
 	phys_addr_t total_bytes = memblock_phys_mem_size();
