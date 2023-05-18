@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
-ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
+ccflags-$(CONFIG_SENSORS_FPRINT_SECURE) := -DENABLE_SENSORS_FPRINT_SECURE
 
 obj-$(CONFIG_ARCH_EXYNOS)       += exynos-el3_mon.o
 obj-$(CONFIG_ARCH_EXYNOS)       += exynos-smc.o

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 # Samsung pin control drivers
 
-ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
+ccflags-$(CONFIG_SENSORS_FPRINT_SECURE) := -DENABLE_SENSORS_FPRINT_SECURE
 
 obj-$(CONFIG_PINCTRL_SAMSUNG)	+= pinctrl-samsung.o
 obj-$(CONFIG_PINCTRL_EXYNOS)	+= pinctrl-exynos.o

@@ -4,7 +4,7 @@
 
 # Each configuration option enables a list of files.
 
-ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
+ccflags-$(CONFIG_SENSORS_FPRINT_SECURE) := -DENABLE_SENSORS_FPRINT_SECURE
 ccflags-y += -Wformat
 
 obj-$(CONFIG_SENSORS_FINGERPRINT)	+= fingerprint_sysfs.o

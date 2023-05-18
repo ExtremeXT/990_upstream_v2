@@ -4,7 +4,7 @@
 #
 
 ccflags-$(CONFIG_SPI_DEBUG) := -DDEBUG
-ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
+ccflags-$(CONFIG_SENSORS_FPRINT_SECURE) := -DENABLE_SENSORS_FPRINT_SECURE
 
 # small core, mostly translating board-specific
 # config declarations into driver model code
