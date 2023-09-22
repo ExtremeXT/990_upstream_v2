@@ -81,9 +81,6 @@ OFFSET_CAL_ENABLE = FALSE
 # Set to TRUE to enable code for internal testing
 LEGACY_CODE = FALSE
 
-# Set to TRUE to enable logging functions.
-LOG_ENABLE = TRUE
-
 # Set to TRUE to enable stress test functions.
 TEST_ENABLE = FALSE
 
@@ -94,7 +91,7 @@ GPIO_INTERRUPT := -1
 endif
 
 # Set to TRUE to enable logging functions.
-LOG_ENABLE = TRUE
+LOG_ENABLE = FALSE
 
 ifeq "$(LOG_ENABLE)" "TRUE"
   $(warning LOG_ENABLE=$(LOG_ENABLE))
@@ -123,6 +120,7 @@ ifeq "$(RANGE_SERVICING)" "WORKER"
 ccflags-y += -DVL53L5_WORKER
 endif
 
+ifeq "$(LOG_ENABLE)" "TRUE"
 ifeq "$(BUILD_TYPE)" "DEBUG"
   $(warning BUILD_TYPE=$(BUILD_TYPE))
   ccflags-y += -DDEBUG
@@ -131,7 +129,7 @@ endif
 ifeq "$(BUILD_TYPE)" "RELEASE"
   $(warning BUILD_TYPE=$(BUILD_TYPE))
 endif
-
+endif
 
 KERNEL_DRIVER_OBJS = \
 			src/vl53l5_k_ioctl_controls.o \
