@@ -46,7 +46,7 @@
 
 #define IATOVAL_NSEC		20000	/* unit: ns */
 
-extern ufshcd_link_hibern8_ctrl(struct ufs_hba *hba, bool en);
+extern int ufshcd_link_hibern8_ctrl(struct ufs_hba *hba, bool en);
 
 /* UFS CAL interface */
 

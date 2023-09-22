@@ -325,7 +325,7 @@ int migov_fops_release(struct inode *node, struct file *filp)
 /******************************************************************************/
 /*                                FPS functions                               */
 /******************************************************************************/
-extern ems_frame_cnt;
+extern u64 ems_frame_cnt;
 static u64 get_frame_cnt(void)
 {
 	return ems_frame_cnt;

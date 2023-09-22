@@ -190,7 +190,7 @@ static void abox_dbg_clear_valid(int idx)
 static ssize_t abox_dbg_read_valid(struct file *file, char __user *user_buf,
 				    size_t count, loff_t *ppos)
 {
-	int idx = (int)file->private_data;
+	int idx = (int)(long)file->private_data;
 	bool valid = abox_dbg_dump_valid(idx);
 	char buf_val[4] = {0, }; /* enough to store a bool and "\n\0" */
 
@@ -212,7 +212,7 @@ static const struct file_operations abox_dbg_fops_valid = {
 static ssize_t abox_dbg_read_clear(struct file *file, char __user *user_buf,
 				   size_t count, loff_t *ppos)
 {
-	int idx = (int)file->private_data;
+	int idx = (int)(long)file->private_data;
 
 	abox_dbg_clear_valid(idx);
 
@@ -223,7 +223,7 @@ static ssize_t abox_dbg_write_clear(struct file *file,
 				    const char __user *user_buf,
 				    size_t count, loff_t *ppos)
 {
-	int idx = (int)file->private_data;
+	int idx = (int)(long)file->private_data;
 
 	abox_dbg_clear_valid(idx);
 
