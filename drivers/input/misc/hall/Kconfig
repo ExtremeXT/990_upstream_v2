@@ -37,7 +37,6 @@ config HALL_NEW_NODE
 	bool "Chang the node location of HALL IC"
 	default y
 	depends on HALL
-	depends on $(PLATFORM_VERSION) >= 11
 	help
 	  Say Y here if you want to change the location of hall ic node.
 	  it was decided with the framework to be changed from R OS

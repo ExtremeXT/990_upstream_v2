@@ -24,8 +24,7 @@ menuconfig MALI_DDK_VERSION
 choice
 	prompt "version Configuration"
 	depends on MALI_DDK_VERSION
-	default MALI_DDK_VALHALL_R32P1 if $(SEC_BUILD_CONF_VENDOR_BUILD_OS) <= 12
-	default MALI_DDK_VALHALL_R38P1 if $(SEC_BUILD_CONF_VENDOR_BUILD_OS) >= 13
+	default MALI_DDK_VALHALL_R38P1
 	help
 	  Select the gpu support version.
 
