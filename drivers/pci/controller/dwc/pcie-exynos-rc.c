@@ -3101,7 +3101,7 @@ int exynos_pcie_rc_itmon_notifier(struct notifier_block *nb,
 }
 #endif
 
-static int __init exynos_pcie_rc_add_port(struct platform_device *pdev,
+static int exynos_pcie_rc_add_port(struct platform_device *pdev,
 					struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
