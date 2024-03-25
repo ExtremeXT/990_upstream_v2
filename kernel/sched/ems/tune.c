@@ -930,9 +930,6 @@ parse_cpus_allowed(struct device_node *dn, struct emstune_set *set)
 /******************************************************************************
  * priority pinning                                                           *
  ******************************************************************************/
-#ifdef CONFIG_FAST_TRACK
-#include <cpu/ftt/ftt.h>
-#endif
  static int emstune_prio_pinning(struct task_struct *p)
 {
 	int st_idx;
@@ -942,9 +939,6 @@ parse_cpus_allowed(struct device_node *dn, struct emstune_set *set)
 
 	st_idx = schedtune_task_group_idx(p);
 	if (cur_set.prio_pinning.enabled[st_idx]) {
-#ifdef CONFIG_FAST_TRACK
-	return is_ftt(&p->se);
-#endif
 
 		if (p->sched_class == &fair_sched_class &&
 		    p->prio <= cur_set.prio_pinning.prio)

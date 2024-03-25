@@ -516,13 +516,6 @@ struct sched_entity {
 	struct cfs_rq			*my_q;
 #endif
 
-#ifdef CONFIG_FAST_TRACK
-	int ftt_mark;
-	int ftt_enqueue_time;
-	atomic64_t ftt_dyn_mark;
-	u64 ftt_vrt_delta;
-#endif
-
 #ifdef CONFIG_SMP
 	/*
 	 * Per entity load average tracking.

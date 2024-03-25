@@ -25,10 +25,6 @@
 #include <trace/events/sched.h>
 #include <trace/events/ems_debug.h>
 
-#ifdef CONFIG_FAST_TRACK
-#include <cpu/ftt/ftt.h>
-#endif
-
 /*
  * Targeted preemption latency for CPU-bound tasks:
  *
@@ -491,15 +487,7 @@ static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
 static inline int entity_before(struct sched_entity *a,
 				struct sched_entity *b)
 {
-#ifdef CONFIG_FAST_TRACK
-	s64 vdiff = a->vruntime - b->vruntime;
-
-	if (is_ftt(a) && is_ftt(b))
-		vdiff += (s64)(a->ftt_vrt_delta - b->ftt_vrt_delta);
-	return vdiff < 0;
-#else
 	return (s64)(a->vruntime - b->vruntime) < 0;
-#endif
 }
 
 static void update_min_vruntime(struct cfs_rq *cfs_rq)
@@ -570,52 +558,6 @@ static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
 	rb_erase_cached(&se->run_node, &cfs_rq->tasks_timeline);
 }
-
-#ifdef CONFIG_FAST_TRACK
-void ftt_set_vruntime(struct task_struct *task, int set)
-{
-	struct sched_entity *se = &task->se;
-	struct cfs_rq *cfs_rq;
-	int on_tree;
-	unsigned int on_rq;
-
-	if (!set && is_ftt(se))
-		return;
-
-	if (set && se->ftt_enqueue_time)
-		return;
-
-	cfs_rq = cfs_rq_of(se);
-	if (unlikely(cfs_rq == NULL))
-		return;
-
-	on_rq = se->on_rq;
-	on_tree = se != cfs_rq->curr && on_rq;
-
-	if (set == 0 && se->ftt_enqueue_time == 0)
-		on_rq = 0;
-	se->ftt_enqueue_time = on_rq && set;
-
-	if (on_tree)
-		__dequeue_entity(cfs_rq, se);
-
-	if (set) {
-		if (on_rq) {
-			__ftt_init_vruntime(cfs_rq, se);
-			cfs_rq->ftt_rqcnt++;
-		}
-	} else {
-		__ftt_normalize_vruntime(cfs_rq, se);
-		if (on_rq) {
-			if (likely(cfs_rq->ftt_rqcnt > 0))
-				cfs_rq->ftt_rqcnt--;
-		}
-	}
-	
-	if (on_tree)
-		__enqueue_entity(cfs_rq, se);
-}
-#endif
 
 struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
 {
@@ -878,27 +820,6 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	curr->sum_exec_runtime += delta_exec;
 	schedstat_add(cfs_rq->exec_clock, delta_exec);
 
-#ifdef CONFIG_FAST_TRACK
-	if (entity_is_task(curr)) {
-		struct task_struct *curtask = task_of(curr);
-
-		if (is_ftt(curr)) {	
-			curr->ftt_vrt_delta += calc_delta_fair(delta_exec, curr);			
-		} else {
-			curr->vruntime += calc_delta_fair(delta_exec, curr);
-			update_min_vruntime(cfs_rq);
-		}
-
-		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
-#ifdef CONFIG_CGROUP_CPUACCT
-		cpuacct_charge(curtask, delta_exec);
-#endif
-		account_group_exec_runtime(curtask, delta_exec);
-	} else {
-		curr->vruntime += calc_delta_fair(delta_exec, curr);
-		update_min_vruntime(cfs_rq);	
-	}
-#else
 	curr->vruntime += calc_delta_fair(delta_exec, curr);
 	update_min_vruntime(cfs_rq);
 
@@ -909,7 +830,6 @@ static void update_curr(struct cfs_rq *cfs_rq)
 		cgroup_account_cputime(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
 	}
-#endif
 
 	account_cfs_rq_runtime(cfs_rq, delta_exec);
 }
@@ -4105,15 +4025,8 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	enqueue_runnable_load_avg(cfs_rq, se);
 	account_entity_enqueue(cfs_rq, se);
 
-#ifdef CONFIG_FAST_TRACK
-	__ftt_normalize_vruntime(cfs_rq, se);
 	if (flags & ENQUEUE_WAKEUP)
 		place_entity(cfs_rq, se, 0);
-	ftt_enqueue_entity(cfs_rq, se);
-#else
-	if (flags & ENQUEUE_WAKEUP)
-		place_entity(cfs_rq, se, 0);
-#endif
 
 	check_schedstat_required();
 	update_stats_enqueue(cfs_rq, se, flags);
@@ -4183,9 +4096,6 @@ dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	 */
 	update_curr(cfs_rq);
 
-#ifdef CONFIG_FAST_TRACK
-	ftt_dequeue_entity(cfs_rq, se);
-#endif
 	/*
 	 * When dequeuing a sched_entity, we must:
 	 *   - Update loads to have both entity and cfs_rq synced with now.
@@ -6720,10 +6630,6 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 			if (!cpu_online(i))
 				continue;
 
-#ifdef CONFIG_FAST_TRACK
-			if(is_ftt(&p->se) && (is_ftt(&cpu_rq(i)->curr->se) || cpu_rq(i)->rt.rt_nr_running))
-				continue;
-#endif
 			/*
 			 * p's blocked utilization is still accounted for on prev_cpu
 			 * so prev_cpu will receive a negative bias due to the double
@@ -7494,10 +7400,6 @@ static int
 wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se)
 {
 	s64 gran, vdiff = curr->vruntime - se->vruntime;
-#ifdef CONFIG_FAST_TRACK
-	if (is_ftt(curr) && is_ftt(se))
-		vdiff += (s64)(curr->ftt_vrt_delta - se->ftt_vrt_delta);
-#endif
 
 	if (vdiff <= 0)
 		return -1;
@@ -7632,23 +7534,10 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
 	struct sched_entity *se;
 	struct task_struct *p;
 	int new_tasks;
-#ifdef CONFIG_FAST_TRACK
-	int norm = 0;
-#endif
 
 again:
 	if (!cfs_rq->nr_running)
 		goto idle;
-
-#ifdef CONFIG_FAST_TRACK
-	if (cfs_rq->ftt_sched_count >= FTT_MAX_SCHED) {
-		if (is_ftt(&prev->se)) {
-			fttstat.wrong++;
-			__ftt_normalize_vruntime(cfs_rq_of(&prev->se), &prev->se);
-			norm = 1;
-		}
-	}
-#endif
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	if (prev->sched_class != &fair_sched_class)
@@ -7672,17 +7561,9 @@ again:
 		 * forget we've ever seen it.
 		 */
 		if (curr) {
-#ifdef CONFIG_FAST_TRACK
-			if (curr->on_rq) {
-				update_curr(cfs_rq);
-				if (norm && curr == &prev->se)
-					__ftt_normalize_vruntime(cfs_rq, curr);
-			} else
-#else
 			if (curr->on_rq)
 				update_curr(cfs_rq);
 			else
-#endif
 				curr = NULL;
 
 			/*
@@ -7765,25 +7646,6 @@ done: __maybe_unused;
 
 	update_misfit_status(p, rq);
 
-#ifdef CONFIG_FAST_TRACK
-	cfs_rq =&rq->cfs;
-	if (is_ftt(&p->se)) {
-		__ftt_init_vruntime(cfs_rq_of(&p->se), &p->se);
-		if (cfs_rq->ftt_rqcnt != rq->nr_running) {
-			cfs_rq->ftt_sched_count++;
-			if (cfs_rq->ftt_sched_count == FTT_MAX_SCHED)
-				cfs_rq->ftt_sched_count += rq->nr_running << 1;
-
-			fttstat.pick_ftt++;
-		}
-	} else {
-		if (cfs_rq->ftt_sched_count >= FTT_MAX_SCHED)
-			cfs_rq->ftt_sched_count--;
-		else
-			cfs_rq->ftt_sched_count = cfs_rq->ftt_sched_count - FTT_DELINE_COUNT > 0 ?
-				cfs_rq->ftt_sched_count - FTT_DELINE_COUNT : 0;
-	}
-#endif
 	return p;
 
 idle:
@@ -7807,14 +7669,6 @@ idle:
 	 */
 	update_idle_rq_clock_pelt(rq);
 
-#ifdef CONFIG_FAST_TRACK
-	cfs_rq = &rq->cfs;
-	if (cfs_rq->ftt_sched_count >= FTT_MAX_SCHED)
-		cfs_rq->ftt_sched_count--;
-	else
-		cfs_rq->ftt_sched_count = cfs_rq->ftt_sched_count - FTT_DELINE_COUNT > 0 ?
-			cfs_rq->ftt_sched_count - FTT_DELINE_COUNT : 0;
-#endif
 	return NULL;
 }
 
@@ -7825,15 +7679,6 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 {
 	struct sched_entity *se = &prev->se;
 	struct cfs_rq *cfs_rq;
-#ifdef CONFIG_FAST_TRACK
-	cfs_rq = &rq->cfs;
-	if (is_ftt(se)) {
-		if (cfs_rq->ftt_sched_count >= FTT_MAX_SCHED) {
-			__ftt_normalize_vruntime(cfs_rq_of(se), se);
-		}
-	}
-#endif
-
 
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
@@ -8224,10 +8069,6 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 
 	if (tsk_cache_hot <= 0 ||
 	    env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
-#ifdef CONFIG_FAST_TRACK
-                if(is_ftt(&p->se) && (is_ftt(&cpu_rq(env->dst_cpu)->curr->se) || cpu_rq(env->dst_cpu)->rt.rt_nr_running))
-			return 0;
-#endif
 		if (tsk_cache_hot == 1) {
 			schedstat_inc(env->sd->lb_hot_gained[env->idle]);
 			schedstat_inc(p->se.statistics.nr_forced_migrations);
@@ -11103,11 +10944,6 @@ static void task_fork_fair(struct task_struct *p)
 	curr = cfs_rq->curr;
 	if (curr) {
 		update_curr(cfs_rq);
-#ifdef CONFIG_FAST_TRACK
-		if (is_ftt(curr))
-			se->vruntime = cfs_rq->min_vruntime;
-		else
-#endif
 		se->vruntime = curr->vruntime;
 	}
 	place_entity(cfs_rq, se, 1);
@@ -11314,10 +11150,6 @@ void init_cfs_rq(struct cfs_rq *cfs_rq)
 #ifdef CONFIG_SMP
 	raw_spin_lock_init(&cfs_rq->removed.lock);
 	init_cfs_rq_multi_load(cfs_rq);
-#endif
-#ifdef CONFIG_FAST_TRACK
-	cfs_rq->ftt_rqcnt = 0;
-	cfs_rq->ftt_sched_count = 0;
 #endif
 }
 
