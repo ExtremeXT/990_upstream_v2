@@ -411,19 +411,6 @@ struct tcp_sock {
 
 	int			linger2;
 
-/* Network Pacemaker */
-#ifdef CONFIG_NETPM
-	u8 netpm_netif;
-	u8 netpm_rbuf_flag;
-	u32 netpm_rtt_min_us;
-	u32 netpm_srtt_us;
-	u32 netpm_rttvar_us;
-	int netpm_cwnd_est;
-	int netpm_tcp_rmem_max;
-	int netpm_max_tput;
-	int netpm_rmem_max_curbdp;
-#endif
-
 /* Sock_ops bpf program related variables */
 #ifdef CONFIG_BPF
 	u8	bpf_sock_ops_cb_flags;  /* Control calling BPF programs

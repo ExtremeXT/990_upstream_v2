@@ -275,10 +275,7 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 /* sysctl variables for tcp */
 extern int sysctl_tcp_max_orphans;
 extern long sysctl_tcp_mem[3];
-#ifdef CONFIG_NETPM
-extern int sysctl_tcp_netpm[4];
-extern struct net_device *ip6_dev_find(struct net *net, const struct in6_addr *addr);
-#endif
+
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
 #define TCP_RACK_NO_DUPTHRESH    0x4 /* Do not use DUPACK threshold in RACK */
@@ -1511,18 +1508,6 @@ void tcp_select_initial_window(const struct sock *sk, int __space,
 			       __u32 mss, __u32 *rcv_wnd,
 			       __u32 *window_clamp, int wscale_ok,
 			       __u8 *rcv_wscale, __u32 init_rcv_wnd);
-
-#ifdef CONFIG_NETPM
-static inline int tcp_space_from_win(const struct sock *sk, int win)
-{
-	int tcp_adv_win_scale = sock_net(sk)->ipv4.sysctl_tcp_adv_win_scale;
-	
-	return tcp_adv_win_scale <= 0 ?
-			(win<<(tcp_adv_win_scale)) :
-			(win<<tcp_adv_win_scale)/
-				((1<<tcp_adv_win_scale)-1);
-}
-#endif
 
 static inline int tcp_win_from_space(const struct sock *sk, int space)
 {
