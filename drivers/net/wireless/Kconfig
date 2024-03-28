@@ -48,7 +48,6 @@ source "drivers/net/wireless/zydas/Kconfig"
 source "drivers/net/wireless/quantenna/Kconfig"
 source "drivers/net/wireless/cnss2/Kconfig"
 source "drivers/net/wireless/cnss_utils/Kconfig"
-source "drivers/net/wireless/qualcomm/qca6390/qcacld-3.0/Kconfig"
 source "drivers/net/wireless/cnss_genl/Kconfig"
 
 config PCMCIA_RAYCS
