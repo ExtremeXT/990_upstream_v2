@@ -1231,92 +1231,6 @@ static ssize_t hiotime_store(struct device *dev,
 	return count;
 }
 
-static ssize_t iobd_show(struct device *dev,
-			  struct device_attribute *attr,
-			  char *buf)
-{
-	struct gendisk *disk = dev_to_disk(dev);
-	struct hd_struct *hd = dev_to_part(dev);
-	struct accumulated_io_stats *old = &(disk->accios);
-	struct accumulated_io_stats new;
-	int cpu;
-	int ret;
-	int idx, sg;
-
-	cpu = part_stat_lock();
-	part_round_stats(disk->queue, cpu, hd);
-	part_stat_unlock();
-
-	for (idx = 0; idx < FSYNC_TIME_GROUP_MAX; idx++)
-		new.fsync_time_cnt[idx] = read_fsync_time_cnt(idx);
-
-	for (idx = 0; idx < 3; idx++) /* READ, WRITE and DISCARD */
-		for (sg = 0; sg < IO_SIZE_GROUP_MAX; sg++)
-			new.size_cnt[idx][sg] = part_stat_read(hd, size_cnt[idx][sg]);
-
-	ret = sprintf(buf, "\"FTC0\":\"%lu\",\"FTC1\":\"%lu\","
-			   "\"FTC2\":\"%lu\",\"FTC3\":\"%lu\","
-			   "\"RSC2\":\"%lu\",\"RSC3\":\"%lu\","
-			   "\"RSC4\":\"%lu\",\"RSC5\":\"%lu\","
-			   "\"RSC6\":\"%lu\",\"RSC7\":\"%lu\","
-			   "\"RSC8\":\"%lu\",\"RSC9\":\"%lu\","
-			   "\"WSC2\":\"%lu\",\"WSC3\":\"%lu\","
-			   "\"WSC4\":\"%lu\",\"WSC5\":\"%lu\","
-			   "\"WSC6\":\"%lu\",\"WSC7\":\"%lu\","
-			   "\"WSC8\":\"%lu\",\"WSC9\":\"%lu\","
-			   "\"DSC5\":\"%lu\",\"DSC6\":\"%lu\","
-			   "\"DSC7\":\"%lu\",\"DSC8\":\"%lu\","
-			   "\"DSC9\":\"%lu\",\"DSC10\":\"%lu\","
-			   "\"DSC11\":\"%lu\",\"DSC12\":\"%lu\","
-			   "\"HIOT0\":\"%lu\",\"HIOT1\":\"%lu\","
-			   "\"HIOT2\":\"%lu\"\n",
-			UNSIGNED_DIFF(new.fsync_time_cnt[0], old->fsync_time_cnt[0]),
-			UNSIGNED_DIFF(new.fsync_time_cnt[1], old->fsync_time_cnt[1]),
-			UNSIGNED_DIFF(new.fsync_time_cnt[2], old->fsync_time_cnt[2]),
-			UNSIGNED_DIFF(new.fsync_time_cnt[3], old->fsync_time_cnt[3]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][0], old->size_cnt[STAT_READ][0]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][1], old->size_cnt[STAT_READ][1]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][2], old->size_cnt[STAT_READ][2]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][3], old->size_cnt[STAT_READ][3]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][4], old->size_cnt[STAT_READ][4]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][5], old->size_cnt[STAT_READ][5]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][6], old->size_cnt[STAT_READ][6]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_READ][7], old->size_cnt[STAT_READ][7]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][0], old->size_cnt[STAT_WRITE][0]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][1], old->size_cnt[STAT_WRITE][1]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][2], old->size_cnt[STAT_WRITE][2]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][3], old->size_cnt[STAT_WRITE][3]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][4], old->size_cnt[STAT_WRITE][4]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][5], old->size_cnt[STAT_WRITE][5]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][6], old->size_cnt[STAT_WRITE][6]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_WRITE][7], old->size_cnt[STAT_WRITE][7]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][0], old->size_cnt[STAT_DISCARD][0]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][1], old->size_cnt[STAT_DISCARD][1]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][2], old->size_cnt[STAT_DISCARD][2]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][3], old->size_cnt[STAT_DISCARD][3]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][4], old->size_cnt[STAT_DISCARD][4]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][5], old->size_cnt[STAT_DISCARD][5]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][6], old->size_cnt[STAT_DISCARD][6]),
-			UNSIGNED_DIFF(new.size_cnt[STAT_DISCARD][7], old->size_cnt[STAT_DISCARD][7]),
-			disk->hiotime[0],
-			disk->hiotime[1],
-			disk->hiotime[2]);
-
-	for (idx = 0; idx < FSYNC_TIME_GROUP_MAX; idx++)
-		disk->accios.fsync_time_cnt[idx] = new.fsync_time_cnt[idx];
-
-	for (idx = 0; idx < 3; idx++) /* READ, WRITE and DISCARD */
-		for (sg = 0; sg < IO_SIZE_GROUP_MAX; sg++)
-			disk->accios.size_cnt[idx][sg] = new.size_cnt[idx][sg];
-
-	disk->hiotime[0] = 0;
-	disk->hiotime[1] = 0;
-	disk->hiotime[2] = 0;
-
-	return ret;
-}
-
-
 static struct kobject *base_probe(dev_t devt, int *partno, void *data)
 {
 	if (request_module("block-major-%d-%d", MAJOR(devt), MINOR(devt)) > 0)
@@ -1427,7 +1341,6 @@ static DEVICE_ATTR(stat, 0444, part_stat_show, NULL);
 static DEVICE_ATTR(inflight, 0444, part_inflight_show, NULL);
 static DEVICE_ATTR(badblocks, 0644, disk_badblocks_show, disk_badblocks_store);
 static DEVICE_ATTR(diskios, 0660, disk_ios_show, NULL);
-static DEVICE_ATTR(iobd, 0660, iobd_show, NULL);
 static DEVICE_ATTR(hiotime, 0660, hiotime_show, hiotime_store);
 #ifdef CONFIG_FAIL_MAKE_REQUEST
 static struct device_attribute dev_attr_fail =
@@ -1452,7 +1365,6 @@ static struct attribute *disk_attrs[] = {
 	&dev_attr_inflight.attr,
 	&dev_attr_badblocks.attr,
 	&dev_attr_diskios.attr,
-	&dev_attr_iobd.attr,
 	&dev_attr_hiotime.attr,
 #ifdef CONFIG_FAIL_MAKE_REQUEST
 	&dev_attr_fail.attr,
