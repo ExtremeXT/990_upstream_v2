@@ -615,9 +615,6 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
 	bio->bi_crypt_skip = bio_src->bi_crypt_skip;
 #endif
 
-#ifdef CONFIG_DDAR
-	bio_clone_crypt_key(bio, bio_src);
-#endif
 	bio_clone_blkcg_association(bio, bio_src);
 }
 EXPORT_SYMBOL(__bio_clone_fast);

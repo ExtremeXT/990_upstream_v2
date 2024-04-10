@@ -37,6 +37,3 @@ obj-$(CONFIG_MST_LDO)	  += mstdrv/
 # HDM driver
 obj-$(CONFIG_HDM)			+= hdm/
 
-# Knox SDP
-obj-$(CONFIG_SDP) += sdp/
-obj-$(CONFIG_SDP) += sdp/built-in.a

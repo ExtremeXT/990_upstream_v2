@@ -448,12 +448,6 @@ extern void bio_put(struct bio *);
 
 extern void __bio_clone_fast(struct bio *, struct bio *);
 extern struct bio *bio_clone_fast(struct bio *, gfp_t, struct bio_set *);
-#ifdef CONFIG_DDAR
-static inline void bio_clone_crypt_key(struct bio *dst, const struct bio *src)
-{
-	dst->bi_dio_inode = src->bi_dio_inode;
-}
-#endif
 
 extern struct bio_set fs_bio_set;
 

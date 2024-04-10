@@ -280,9 +280,7 @@ static struct bio *bounce_clone_bio(struct bio *bio_src, gfp_t gfp_mask,
 			return NULL;
 		}
 	}
-#ifdef CONFIG_DDAR
-	bio_clone_crypt_key(bio, bio_src);
-#endif
+
 	bio_clone_blkcg_association(bio, bio_src);
 
 	return bio;

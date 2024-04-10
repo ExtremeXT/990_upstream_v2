@@ -16,15 +16,6 @@
 #include <linux/fscrypt.h>
 #include <crypto/hash.h>
 
-#if defined(CONFIG_FSCRYPT_SDP) || defined(CONFIG_DDAR)
-#include "fscrypt_knox_private.h"
-#endif
-
-#ifdef CONFIG_FSCRYPT_SDP
-#include "sdp/fscrypto_sdp_private.h"
-#include <sdp/fs_request.h>
-#endif
-
 /* Encryption parameters */
 #define FS_KEY_DERIVATION_NONCE_SIZE	16
 
@@ -46,9 +37,6 @@ struct fscrypt_context {
 	u8 flags;
 	u8 master_key_descriptor[FS_KEY_DESCRIPTOR_SIZE];
 	u8 nonce[FS_KEY_DERIVATION_NONCE_SIZE];
-#if defined(CONFIG_FSCRYPT_SDP) || defined(CONFIG_DDAR)
-	u32 knox_flags;
-#endif
 } __packed;
 
 #define FS_ENCRYPTION_CONTEXT_FORMAT_V1		1
@@ -103,13 +91,6 @@ struct fscrypt_info {
 	u8 ci_flags;
 	u8 ci_master_key_descriptor[FS_KEY_DESCRIPTOR_SIZE];
 	u8 ci_nonce[FS_KEY_DERIVATION_NONCE_SIZE];
-
-#ifdef CONFIG_DDAR
-	struct dd_info *ci_dd_info;
-#endif
-#ifdef CONFIG_FSCRYPT_SDP
-	struct sdp_info *ci_sdp_info;
-#endif
 };
 
 typedef enum {
