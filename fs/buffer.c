@@ -3139,8 +3139,6 @@ static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
 	}
 	bio_set_op_attrs(bio, op, op_flags);
 
-	if (bio->bi_opf & REQ_CRYPT)
-		bio->bi_aux_private = bh->b_private;
 	submit_bio(bio);
 	return 0;
 }

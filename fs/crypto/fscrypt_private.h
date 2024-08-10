@@ -62,10 +62,6 @@ struct fscrypt_info {
 	/* The actual crypto transform used for encryption and decryption */
 	struct crypto_skcipher *ci_ctfm;
 
-	/* Cipher for inline encryption engine */
-#ifdef CONFIG_CRYPTO_DISKCIPHER
-	struct crypto_diskcipher *ci_dtfm;
-#endif
 	/*
 	 * Cipher for ESSIV IV generation.  Only set for CBC contents
 	 * encryption, otherwise is NULL.
@@ -116,10 +112,6 @@ static inline bool fscrypt_valid_enc_modes(u32 contents_mode,
 	    filenames_mode == FS_ENCRYPTION_MODE_ADIANTUM)
 		return true;
 
-	if (contents_mode == FS_ENCRYPTION_MODE_PRIVATE &&
-		filenames_mode == FS_ENCRYPTION_MODE_AES_256_CTS)
-		return true;
-
 	return false;
 }
 
@@ -166,15 +158,8 @@ extern int fname_encrypt(struct inode *inode, const struct qstr *iname,
 extern bool fscrypt_fname_encrypted_size(const struct inode *inode,
 					 u32 orig_len, u32 max_len,
 					 u32 *encrypted_len_ret);
-extern void fscrypt_free_bounce_page(void *pool);
 
 /* keyinfo.c */
-
-enum cipher_flags {
-	CRYPT_MODE_SKCIPHER,
-	CRYPT_MODE_ESSIV,
-	CRYPT_MODE_DISKCIPHER,
-};
 
 struct fscrypt_mode {
 	const char *friendly_name;
@@ -182,19 +167,9 @@ struct fscrypt_mode {
 	int keysize;
 	int ivsize;
 	bool logged_impl_name;
-	enum cipher_flags flags;
+	bool needs_essiv;
 };
 
 extern void __exit fscrypt_essiv_cleanup(void);
 
-static inline int __fscrypt_disk_encrypted(const struct inode *inode)
-{
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION)
-#if IS_ENABLED(CONFIG_CRYPTO_DISKCIPHER)
-	if (inode && inode->i_crypt_info)
-		return S_ISREG(inode->i_mode) && (inode->i_crypt_info->ci_dtfm != NULL);
-#endif
-#endif
-	return 0;
-}
 #endif /* _FSCRYPT_PRIVATE_H */

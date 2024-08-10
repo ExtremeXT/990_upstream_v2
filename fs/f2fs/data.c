@@ -47,8 +47,7 @@ static bool __is_cp_guaranteed(struct page *page)
 			inode->i_ino ==  F2FS_NODE_INO(sbi) ||
 			S_ISDIR(inode->i_mode) ||
 			(S_ISREG(inode->i_mode) &&
-			(f2fs_is_atomic_file(inode) || IS_NOQUOTA(inode) ||
-			IS_ATOMIC_WRITTEN_PAGE(page))) ||
+			(f2fs_is_atomic_file(inode) || IS_NOQUOTA(inode))) ||
 			is_cold_data(page))
 		return true;
 	return false;
@@ -83,64 +82,6 @@ struct bio_post_read_ctx {
 	unsigned int cur_step;
 	unsigned int enabled_steps;
 };
-
-/* device unit number for iv sector */
-#define PG_DUN(i, p)	\
-	((((i)->i_ino & 0xffffffff) << 32) | ((p)->index & 0xffffffff))
-
-static inline bool f2fs_may_encrypt_bio(struct inode *inode,
-		struct f2fs_io_info *fio)
-{
-#ifdef CONFIG_CRYPTO_DISKCIPHER
-	if (fio && (fio->type != DATA || fio->encrypted_page))
-		return false;
-
-	return (f2fs_encrypted_file(inode) &&
-			fscrypt_disk_encrypted(inode));
-#else
-	return false;
-#endif
-}
-
-void f2fs_set_bio_skip(struct bio *bio, int bi_crypt_skip)
-{
-#ifdef CONFIG_DM_DEFAULT_KEY
-        bio->bi_crypt_skip = bi_crypt_skip;
-#endif
-}
-
-static inline bool f2fs_bio_disk_encrypted(unsigned int bi_opf)
-{
-	if (bi_opf & REQ_CRYPT)
-		return true;
-	else
-		return false;
-}
-
-static bool f2fs_mergeable_bio(struct bio *bio, u64 dun, void *ci,
-		bool bio_encrypted,	int bi_crypt_skip)
-{
-#ifdef CONFIG_CRYPTO_DISKCIPHER
-	if (!bio)
-		return true;
-
-#ifdef CONFIG_DM_DEFAULT_KEY
-	if (bi_crypt_skip != bio->bi_crypt_skip)
-		return false;
-#endif
-
-	/* if both of them are not encrypted, no further check is needed */
-	if (!f2fs_bio_disk_encrypted(bio->bi_opf) && !bio_encrypted)
-		return true;
-
-	if (bio->bi_aux_private == ci)
-		return bio_end_dun(bio) == dun;
-	else
-		return false;
-#else
-	return true;
-#endif
-}
 
 static void __read_end_io(struct bio *bio)
 {
@@ -210,9 +151,6 @@ static void f2fs_read_end_io(struct bio *bio)
 		bio->bi_status = BLK_STS_IOERR;
 	}
 
-	if (f2fs_bio_disk_encrypted(bio->bi_opf))
-		goto end_io;
-
 	if (f2fs_bio_post_read_required(bio)) {
 		struct bio_post_read_ctx *ctx = bio->bi_private;
 
@@ -228,7 +166,6 @@ static void f2fs_read_end_io(struct bio *bio)
 						bio->bi_iter.bi_size);
 	}
 
-end_io:
 	__read_end_io(bio);
 }
 
@@ -397,12 +334,10 @@ static inline void __submit_bio(struct f2fs_sb_info *sbi,
 			set_sbi_flag(sbi, SBI_NEED_CP);
 	}
 submit_io:
-
 	if (is_read_io(bio_op(bio)))
 		trace_f2fs_submit_read_bio(sbi->sb, type, bio);
 	else
 		trace_f2fs_submit_write_bio(sbi->sb, type, bio);
-
 	submit_bio(bio);
 }
 
@@ -432,6 +367,7 @@ static void __f2fs_submit_read_bio(struct f2fs_sb_info *sbi,
 	__submit_bio(sbi, bio, type);
 }
 
+
 /*
  * P221011-01695
  * flush_group: Process group in which file's is very important.
@@ -460,10 +396,7 @@ static void __submit_merged_bio(struct f2fs_bio_info *io)
 
 	__sec_attach_io_flag(fio);
 
-	if (f2fs_bio_disk_encrypted(io->bio->bi_opf))
-		bio_set_op_attrs(io->bio, fio->op, fio->op_flags | io->bio->bi_opf | REQ_CRYPT);
-	else
-		bio_set_op_attrs(io->bio, fio->op, fio->op_flags | io->bio->bi_opf);
+	bio_set_op_attrs(io->bio, fio->op, fio->op_flags);
 
 	if (is_read_io(fio->op))
 		trace_f2fs_prepare_read_bio(io->sbi->sb, fio->type, io->bio);
@@ -610,12 +543,7 @@ int f2fs_submit_page_bio(struct f2fs_io_info *fio)
 	}
 #endif
 
-	if (f2fs_may_encrypt_bio(inode, fio))
-		fscrypt_set_bio(inode, bio, PG_DUN(inode, fio->page));
-	f2fs_set_bio_skip(bio, fio->encrypted_page ? 1 : 0);
-
 	__f2fs_submit_read_bio(fio->sbi, bio, fio->type);
-
 	return 0;
 }
 
@@ -626,9 +554,6 @@ void f2fs_submit_page_write(struct f2fs_io_info *fio)
 	struct f2fs_bio_info *io = sbi->write_io[btype] + fio->temp;
 	struct page *bio_page;
 	struct inode *inode;
-	bool bio_encrypted;
-	u64 dun;
-	int bi_crypt_skip;
 
 	f2fs_bug_on(sbi, is_read_io(fio->op));
 
@@ -652,9 +577,6 @@ next:
 
 	bio_page = fio->encrypted_page ? fio->encrypted_page : fio->page;
 	inode = fio->page->mapping->host;
-	dun = PG_DUN(inode, fio->page);
-	bi_crypt_skip = fio->encrypted_page ? 1 : 0;
-	bio_encrypted = f2fs_may_encrypt_bio(inode, fio);
 
 	/* set submitted = true as a return value */
 	fio->submitted = true;
@@ -665,10 +587,6 @@ next:
 	    (io->fio.op != fio->op || io->fio.op_flags != fio->op_flags) ||
 			!__same_bdev(sbi, fio->new_blkaddr, io->bio)))
 		__submit_merged_bio(io);
-
-	if (!f2fs_mergeable_bio(io->bio, dun, fscrypt_get_diskcipher(inode), bio_encrypted, bi_crypt_skip))
-		__submit_merged_bio(io);
-
 alloc_new:
 	if (io->bio == NULL) {
 		if ((fio->type == DATA || fio->type == NODE) &&
@@ -680,10 +598,6 @@ alloc_new:
 		io->bio = __bio_alloc(sbi, fio->new_blkaddr, fio->io_wbc,
 						BIO_MAX_PAGES, false,
 						fio->type, fio->temp);
-		if (bio_encrypted)
-			fscrypt_set_bio(inode, io->bio, dun);
-		f2fs_set_bio_skip(io->bio, bi_crypt_skip);
-
 		io->fio = *fio;
 	}
 
@@ -733,7 +647,7 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 	bio->bi_end_io = f2fs_read_end_io;
 	bio_set_op_attrs(bio, REQ_OP_READ, op_flag);
 
-	if (f2fs_encrypted_file(inode) && !fscrypt_disk_encrypted(inode))
+	if (f2fs_encrypted_file(inode))
 		post_read_steps |= 1 << STEP_DECRYPT;
 	if (post_read_steps) {
 		ctx = mempool_alloc(bio_post_read_ctx_pool, GFP_NOFS);
@@ -751,6 +665,7 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 		bio->bi_opf |= REQ_HPB_PREFER;
 	}
 #endif
+
 	return bio;
 }
 
@@ -771,10 +686,6 @@ static int f2fs_submit_page_read(struct inode *inode, struct page *page,
 		return -EFAULT;
 	}
 	ClearPageError(page);
-
-	if (f2fs_may_encrypt_bio(inode, NULL))
-	    fscrypt_set_bio(inode, bio, PG_DUN(inode, page));
-
 	inc_page_count(F2FS_I_SB(inode), F2FS_RD_DATA);
 	__f2fs_submit_read_bio(F2FS_I_SB(inode), bio, DATA);
 	return 0;
@@ -1700,8 +1611,6 @@ static int f2fs_mpage_readpages(struct address_space *mapping,
 	sector_t last_block_in_file;
 	sector_t block_nr;
 	struct f2fs_map_blocks map;
-	bool bio_encrypted;
-	u64 dun;
 
 	map.m_pblk = 0;
 	map.m_lblk = 0;
@@ -1783,14 +1692,6 @@ submit_and_realloc:
 			__f2fs_submit_read_bio(F2FS_I_SB(inode), bio, DATA);
 			bio = NULL;
 		}
-
-		dun = PG_DUN(inode, page);
-		bio_encrypted = f2fs_may_encrypt_bio(inode, NULL);
-		if (!f2fs_mergeable_bio(bio, dun, fscrypt_get_diskcipher(inode), bio_encrypted, 0)) {
-			__submit_bio(F2FS_I_SB(inode), bio, DATA);
-			bio = NULL;
-		}
-
 		if (bio == NULL) {
 			bio = f2fs_grab_read_bio(inode, block_nr, nr_pages,
 					is_readahead ? REQ_RAHEAD : 0);
@@ -1798,8 +1699,6 @@ submit_and_realloc:
 				bio = NULL;
 				goto set_error_page;
 			}
-			if (f2fs_may_encrypt_bio(inode, NULL))
-				fscrypt_set_bio(inode, bio, dun);
 		}
 
 		/*
@@ -1880,9 +1779,6 @@ static int encrypt_one_page(struct f2fs_io_info *fio)
 	f2fs_wait_on_block_writeback(inode, fio->old_blkaddr);
 
 retry_encrypt:
-	if (fscrypt_disk_encrypted(inode))
-		return 0;
-
 	fio->encrypted_page = fscrypt_encrypt_page(inode, fio->page,
 			PAGE_SIZE, 0, fio->page->index, gfp_flags);
 	if (IS_ERR(fio->encrypted_page)) {
@@ -2847,6 +2743,7 @@ static ssize_t f2fs_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	int whint_mode = F2FS_OPTION(sbi).whint_mode;
 	bool do_opu;
 	int dio_flags = DIO_LOCKING | DIO_SKIP_HOLES;
+
 	err = check_direct_IO(inode, iter, offset);
 	if (err)
 		return err < 0 ? err : 0;

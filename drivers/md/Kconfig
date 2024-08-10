@@ -218,7 +218,6 @@ config BLK_DEV_DM
 config DM_MQ_DEFAULT
 	bool "request-based DM: use blk-mq I/O path by default"
 	depends on BLK_DEV_DM
-	depends on CRYPTO_DISKCIPHER
 	---help---
 	  This option enables the blk-mq based I/O path for request-based
 	  DM devices by default.  With the option the dm_mod.use_blk_mq
@@ -598,23 +597,6 @@ config DM_BOW
 	  changes using free blocks identified by issuing a trim command.
 	  This can then be restored by running a command line utility,
 	  or committed by simply replacing the target.
-
-	  If unsure, say N.
-
-config DM_DEFAULT_KEY
-	tristate "Default-key crypt target support"
-	depends on BLK_DEV_DM
-	---help---
-	  This (currently Android-specific) device-mapper target allows you to
-	  create a device that assigns a default encryption key to bios that
-	  don't already have one.  This can sit between inline cryptographic
-	  acceleration hardware and filesystems that use it.  This ensures that
-	  where the filesystem doesn't explicitly specify a key, such as for
-	  filesystem metadata, a default key will be used instead, leaving no
-	  sectors unencrypted.
-
-	  To compile this code as a module, choose M here: the module will be
-	  called dm-default-key.
 
 	  If unsure, say N.
 

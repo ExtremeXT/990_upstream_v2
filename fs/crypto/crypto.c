@@ -104,9 +104,6 @@ struct fscrypt_ctx *fscrypt_get_ctx(const struct inode *inode, gfp_t gfp_flags)
 	if (ci == NULL)
 		return ERR_PTR(-ENOKEY);
 
-	if (__fscrypt_disk_encrypted(inode))
-		return NULL;
-
 	/*
 	 * We first try getting the ctx from a free list because in
 	 * the common case the ctx will have an allocated and
@@ -200,22 +197,11 @@ int fscrypt_do_page_crypto(const struct inode *inode, fscrypt_direction_t rw,
 struct page *fscrypt_alloc_bounce_page(struct fscrypt_ctx *ctx,
 				       gfp_t gfp_flags)
 {
-	void *pool = mempool_alloc(fscrypt_bounce_page_pool, gfp_flags);
-
-	if (pool == NULL)
+	ctx->w.bounce_page = mempool_alloc(fscrypt_bounce_page_pool, gfp_flags);
+	if (ctx->w.bounce_page == NULL)
 		return ERR_PTR(-ENOMEM);
-
-	if (ctx) {
-		ctx->w.bounce_page = pool;
-		ctx->flags |= FS_CTX_HAS_BOUNCE_BUFFER_FL;
-	}
-
-	return pool;
-}
-
-void fscrypt_free_bounce_page(void *pool)
-{
-	mempool_free(pool, fscrypt_bounce_page_pool);
+	ctx->flags |= FS_CTX_HAS_BOUNCE_BUFFER_FL;
+	return ctx->w.bounce_page;
 }
 
 /**
@@ -323,6 +309,7 @@ int fscrypt_decrypt_page(const struct inode *inode, struct page *page,
 	if (WARN_ON_ONCE(!PageLocked(page) &&
 			 !(inode->i_sb->s_cop->flags & FS_CFLG_OWN_PAGES)))
 		return -EINVAL;
+
 	return fscrypt_do_page_crypto(inode, FS_DECRYPT, lblk_num, page, page,
 				      len, offs, GFP_NOFS);
 }

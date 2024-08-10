@@ -2002,9 +2002,8 @@ static inline int inc_valid_block_count(struct f2fs_sb_info *sbi,
 	avail_user_block_count = sbi->user_block_count -
 					sbi->current_reserved_blocks;
 
-	if (!__allow_reserved_blocks(sbi, inode, true)) {
+	if (!__allow_reserved_blocks(sbi, inode, true))
 		avail_user_block_count -= F2FS_OPTION(sbi).root_reserved_blocks;
-	}
 
 	if (unlikely(is_sbi_flag_set(sbi, SBI_CP_DISABLED)))
 		avail_user_block_count -= sbi->unusable_block_count;
@@ -2233,9 +2232,8 @@ static inline int inc_valid_node_count(struct f2fs_sb_info *sbi,
 	valid_block_count = sbi->total_valid_block_count +
 					sbi->current_reserved_blocks + 1;
 
-	if (!__allow_reserved_blocks(sbi, inode, false)) {
+	if (!__allow_reserved_blocks(sbi, inode, false))
 		valid_block_count += F2FS_OPTION(sbi).root_reserved_blocks;
-	}
 
 	if (unlikely(is_sbi_flag_set(sbi, SBI_CP_DISABLED)))
 		valid_block_count += sbi->unusable_block_count;
@@ -3939,7 +3937,7 @@ static inline bool f2fs_force_buffered_io(struct inode *inode,
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	int rw = iov_iter_rw(iter);
 
-	if (f2fs_post_read_required(inode) && !fscrypt_disk_encrypted(inode))
+	if (f2fs_post_read_required(inode))
 		return true;
 	if (sbi->s_ndevs)
 		return true;
