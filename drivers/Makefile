@@ -220,9 +220,6 @@ obj-$(CONFIG_SENSORS_TCS3407)	+= optics/
 # Motor
 obj-y                           += motor/
 
-# OLOG
-obj-y				+= kperfmon/
-
 # streamline
 ifeq ($(CONFIG_GATOR), y)
 	obj-$(CONFIG_GATOR)				+= gator/

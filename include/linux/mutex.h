@@ -66,9 +66,6 @@ struct mutex {
 #ifdef CONFIG_FAST_TRACK
 	struct task_struct 	*ftt_dep_task;
 #endif
-#ifdef CONFIG_KPERFMON
-	unsigned long		time;
-#endif
 };
 
 /*
