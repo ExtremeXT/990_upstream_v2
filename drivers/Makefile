@@ -202,10 +202,6 @@ else
 	obj-$(CONFIG_BATTERY_SAMSUNG)	+= battery/
 endif
 
-# FIVE TEE driver
-obj-$(CONFIG_FIVE_TEE_DRIVER)	+= security/samsung/five_tee_driver/
-obj-$(CONFIG_ICD)		+= security/samsung/icdrv/
-
 # vision driver
 obj-$(CONFIG_VISION_SUPPORT)	+= vision/
 
