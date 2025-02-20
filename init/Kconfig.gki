@@ -3,6 +3,7 @@ config GKI_HIDDEN_DRM_CONFIGS
 	select DRM_KMS_HELPER if (HAS_IOMEM && DRM)
 	select DRM_GEM_CMA_HELPER
 	select DRM_MIPI_DSI
+	select DRM_TTM if (HAS_IOMEM && DRM)
 	select VIDEOMODE_HELPERS
 	help
 	  Dummy config option used to enable hidden DRM configs.
@@ -39,6 +40,7 @@ config GKI_HIDDEN_SND_CONFIGS
 config GKI_HIDDEN_SND_SOC_CONFIGS
 	bool "Hidden SND_SOC configs needed for GKI"
 	select SND_SOC_GENERIC_DMAENGINE_PCM if (SND_SOC && SND)
+	select SND_SOC_COMPRESS if (SND_SOC && SND)
 	help
 	  Dummy config option used to enable hidden SND_SOC configs.
 	  These are normally selected implicitly when a module
@@ -89,10 +91,11 @@ config GKI_HIDDEN_SOC_PM_CONFIGS
 
 config GKI_HIDDEN_VIDEOBUF2_CONFIGS
 	bool "Hidden v4l2 configs for GKI"
+	select V4L2_MEM2MEM_DEV if VIDEO_V4L2
 	select VIDEOBUF2_CORE if VIDEO_V4L2
 	select VIDEOBUF2_V4L2 if VIDEO_V4L2
-	select VIDEOBUF2_MEMOPS if VIDEO_V4L2
 	select VIDEOBUF2_VMALLOC if VIDEO_V4L2
+	select VIDEOBUF2_MEMOPS if VIDEO_V4L2
 	help
 	  Dummy config option used to enable all the hidden v4l2 media module.
 

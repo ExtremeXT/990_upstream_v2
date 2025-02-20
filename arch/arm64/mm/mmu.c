@@ -729,6 +729,7 @@ int kern_addr_valid(unsigned long addr)
 
 	return pfn_valid(pte_pfn(pte));
 }
+EXPORT_SYMBOL_GPL(kern_addr_valid);
 
 #ifdef CONFIG_MEMORY_HOTPLUG
 static void free_hotplug_page_range(struct page *page, ssize_t size)

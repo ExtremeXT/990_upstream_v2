@@ -581,22 +581,27 @@ static ssize_t log_read(struct file *f, char __user *buf, size_t len,
 {
 	struct log_file_state *log_state = f->private_data;
 	struct mount_info *mi = get_mount_info(file_superblock(f));
-	struct incfs_pending_read_info *reads_buf =
-		(struct incfs_pending_read_info *)__get_free_page(GFP_NOFS);
-	size_t reads_to_collect = len / sizeof(*reads_buf);
-	size_t reads_per_page = PAGE_SIZE / sizeof(*reads_buf);
 	int total_reads_collected = 0;
+	int rl_size;
 	ssize_t result = 0;
+	struct incfs_pending_read_info *reads_buf;
+	ssize_t reads_to_collect = len / sizeof(*reads_buf);
+	ssize_t reads_per_page = PAGE_SIZE / sizeof(*reads_buf);
 
+	rl_size = READ_ONCE(mi->mi_log.rl_size);
+	if (rl_size == 0)
+		return 0;
+
+	reads_buf = (struct incfs_pending_read_info *)__get_free_page(GFP_NOFS);
 	if (!reads_buf)
 		return -ENOMEM;
 
-	reads_to_collect = min_t(size_t, mi->mi_log.rl_size, reads_to_collect);
+	reads_to_collect = min_t(ssize_t, rl_size, reads_to_collect);
 	while (reads_to_collect > 0) {
 		struct read_log_state next_state = READ_ONCE(log_state->state);
 		int reads_collected = incfs_collect_logged_reads(
 			mi, &next_state, reads_buf,
-			min_t(size_t, reads_to_collect, reads_per_page));
+			min_t(ssize_t, reads_to_collect, reads_per_page));
 		if (reads_collected <= 0) {
 			result = total_reads_collected ?
 					 total_reads_collected *
@@ -853,7 +858,7 @@ static struct mem_range incfs_copy_signature_info_from_user(u8 __user *original,
 	if (size > INCFS_MAX_SIGNATURE_SIZE)
 		return range(ERR_PTR(-EFAULT), 0);
 
-	result = kzalloc(size, GFP_NOFS);
+	result = kzalloc(size, GFP_NOFS | __GFP_COMP);
 	if (!result)
 		return range(ERR_PTR(-ENOMEM), 0);
 
@@ -1274,7 +1279,7 @@ static long ioctl_fill_blocks(struct file *f, void __user *arg)
 {
 	struct incfs_fill_blocks __user *usr_fill_blocks = arg;
 	struct incfs_fill_blocks fill_blocks;
-	struct incfs_fill_block *usr_fill_block_array;
+	struct incfs_fill_block __user *usr_fill_block_array;
 	struct data_file *df = get_incfs_data_file(f);
 	const ssize_t data_buf_size = 2 * INCFS_DATA_FILE_BLOCK_SIZE;
 	u8 *data_buf = NULL;
@@ -1291,7 +1296,8 @@ static long ioctl_fill_blocks(struct file *f, void __user *arg)
 		return -EFAULT;
 
 	usr_fill_block_array = u64_to_user_ptr(fill_blocks.fill_blocks);
-	data_buf = (u8 *)__get_free_pages(GFP_NOFS, get_order(data_buf_size));
+	data_buf = (u8 *)__get_free_pages(GFP_NOFS | __GFP_COMP,
+					  get_order(data_buf_size));
 	if (!data_buf)
 		return -ENOMEM;
 
@@ -1344,7 +1350,7 @@ static long ioctl_permit_fill(struct file *f, void __user *arg)
 	struct incfs_permit_fill __user *usr_permit_fill = arg;
 	struct incfs_permit_fill permit_fill;
 	long error = 0;
-	struct file *file = 0;
+	struct file *file = NULL;
 
 	if (f->f_op != &incfs_pending_read_file_ops)
 		return -EPERM;
@@ -1406,7 +1412,7 @@ static long ioctl_read_file_signature(struct file *f, void __user *arg)
 	if (sig_buf_size > INCFS_MAX_SIGNATURE_SIZE)
 		return -E2BIG;
 
-	sig_buffer = kzalloc(sig_buf_size, GFP_NOFS);
+	sig_buffer = kzalloc(sig_buf_size, GFP_NOFS | __GFP_COMP);
 	if (!sig_buffer)
 		return -ENOMEM;
 

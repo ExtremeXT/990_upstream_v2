@@ -31,6 +31,8 @@
 #include <linux/slab.h>
 #include <linux/cpu.h>
 #include <linux/cpu_cooling.h>
+#include <linux/energy_model.h>
+#include <linux/of_device.h>
 #include <linux/debug-snapshot.h>
 
 #include <trace/events/thermal.h>
@@ -515,7 +517,16 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 	cpufreq_cdev->cpufreq_state = state;
 	cpufreq_cdev->clipped_freq = clip_freq;
 
-	cpufreq_update_policy(cpufreq_cdev->policy->cpu);
+	/* Check if the device has a platform mitigation function that
+	 * can handle the CPU freq mitigation, if not, notify cpufreq
+	 * framework.
+	 */
+	if (cpufreq_cdev->plat_ops &&
+		cpufreq_cdev->plat_ops->ceil_limit)
+		cpufreq_cdev->plat_ops->ceil_limit(cpufreq_cdev->policy->cpu,
+							clip_freq);
+	else
+		cpufreq_update_policy(cpufreq_cdev->policy->cpu);
 
 	return 0;
 }

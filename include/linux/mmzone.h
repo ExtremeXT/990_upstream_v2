@@ -194,6 +194,8 @@ enum node_stat_item {
 	NR_INDIRECTLY_RECLAIMABLE_BYTES, /* measured in bytes */
 	NR_KERNEL_MISC_RECLAIMABLE,	/* reclaimable non-slab kernel pages */
 	NR_UNRECLAIMABLE_PAGES,
+	NR_ION_HEAP,
+	NR_ION_HEAP_POOL,
 	NR_VM_NODE_STAT_ITEMS
 };
 
@@ -280,10 +282,9 @@ enum zone_watermarks {
 	NR_WMARK
 };
 
-#define min_wmark_pages(z) (z->_watermark[WMARK_MIN] + z->watermark_boost)
-#define low_wmark_pages(z) (z->_watermark[WMARK_LOW] + z->watermark_boost)
-#define high_wmark_pages(z) (z->_watermark[WMARK_HIGH] + z->watermark_boost)
-#define wmark_pages(z, i) (z->_watermark[i] + z->watermark_boost)
+#define min_wmark_pages(z) (z->watermark[WMARK_MIN])
+#define low_wmark_pages(z) (z->watermark[WMARK_LOW])
+#define high_wmark_pages(z) (z->watermark[WMARK_HIGH])
 
 #define RANK_BIT		(30 - PAGE_SHIFT)
 #define rankid(page)		((page_to_pfn(page) >> RANK_BIT) & 1)
@@ -377,8 +378,7 @@ struct zone {
 	/* Read-mostly fields */
 
 	/* zone watermarks, access with *_wmark_pages(zone) macros */
-	unsigned long _watermark[NR_WMARK];
-	unsigned long watermark_boost;
+	unsigned long watermark[NR_WMARK];
 
 	unsigned long nr_reserved_highatomic;
 
@@ -500,8 +500,6 @@ struct zone {
 	unsigned long		compact_cached_free_pfn;
 	/* pfn where async and sync compaction migration scanner should start */
 	unsigned long		compact_cached_migrate_pfn[2];
-	unsigned long		compact_init_migrate_pfn;
-	unsigned long		compact_init_free_pfn;
 #endif
 
 #ifdef CONFIG_COMPACTION
@@ -904,8 +902,6 @@ static inline int is_highmem(struct zone *zone)
 /* These two functions are used to setup the per zone pages min values */
 struct ctl_table;
 int min_free_kbytes_sysctl_handler(struct ctl_table *, int,
-					void __user *, size_t *, loff_t *);
-int watermark_boost_factor_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);
 int watermark_scale_factor_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);
