@@ -276,7 +276,8 @@
   fwnode_property_read_u32_array
   gcd
   generic_handle_irq
-  genlmsg_put
+  genl_register_family
+  genl_unregister_family
   gen_pool_add_virt
   gen_pool_alloc
   gen_pool_create
@@ -760,6 +761,7 @@
   regulator_disable
   regulator_enable
   regulator_get
+  regulator_get_voltage
   regulator_is_enabled
   regulator_put
   regulator_set_load
@@ -915,6 +917,7 @@
   sysfs_remove_group
   sysfs_remove_groups
   sysfs_streq
+  system_freezable_wq
   system_freezing_cnt
   system_highpri_wq
   system_long_wq
@@ -1274,7 +1277,6 @@
   pinctrl_pm_select_default_state
   pinctrl_pm_select_sleep_state
   strcat
-  system_freezable_wq
   usb_add_gadget_udc
   usb_del_gadget_udc
   usb_ep_set_maxpacket_limit
@@ -1508,6 +1510,7 @@
   __ll_sc_atomic_or
   mmap_min_addr
   mmput
+  mm_trace_rss_stat
   of_devfreq_cooling_register
   plist_del
   rb_last
@@ -1839,7 +1842,7 @@
   __tracepoint_clock_set_rate
 
 # required by msm_minidump.ko
-  linux_banner
+  linux_banner_ptr
 
 # required by msm_npu.ko
   kmem_cache_create_usercopy
@@ -2050,7 +2053,6 @@
 
 # required by qpnp-smb5-charger.ko
   iio_channel_release
-  regulator_get_voltage
 
 # required by qpnp_pdphy.ko
   device_get_named_child_node
@@ -2114,8 +2116,7 @@
   csum_tcpudp_nofold
   __dev_get_by_index
   dev_queue_xmit
-  genl_register_family
-  genl_unregister_family
+  genlmsg_put
   get_current_napi_context
   gro_cells_destroy
   gro_cells_init
@@ -2485,7 +2486,6 @@
   cfg80211_unlink_bss
   cfg80211_update_owe_info_event
   cfg80211_vendor_cmd_reply
-  cld80211_get_genl_family
   complete_and_exit
   cpufreq_quick_get_max
   __cpuhp_remove_state
@@ -2497,7 +2497,6 @@
   crypto_alloc_skcipher
   crypto_shash_final
   crypto_shash_update
-  deregister_cld_cmd_cb
   dev_alloc_name
   dump_stack
   hex_to_bin
@@ -2526,7 +2525,6 @@
   pm_system_wakeup
   proc_create_data
   proc_mkdir
-  register_cld_cmd_cb
   register_netevent_notifier
   register_sysctl_table
   regulatory_set_wiphy_regd
