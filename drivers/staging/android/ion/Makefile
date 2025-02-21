@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-subdir-ccflags-y := -Wformat
+CFLAGS_ion.o = -I$(src)
 obj-$(CONFIG_ION) +=	ion.o ion-ioctl.o ion_heap.o
 obj-$(CONFIG_ION_RBIN_HEAP) +=	ion_rbin_heap.o
 obj-$(CONFIG_ION_SYSTEM_HEAP) += ion_system_heap.o ion_page_pool.o
