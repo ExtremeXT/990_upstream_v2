@@ -661,7 +661,9 @@ thermal_zone_of_add_sensor(struct device_node *zone,
  * that refer to it.
  *
  * Return: On success returns a valid struct thermal_zone_device,
- * otherwise, it returns a corresponding ERR_PTR(). Caller must
+ * otherwise, it returns a corresponding ERR_PTR(). Incase there are multiple
+ * thermal zones referencing the same sensor, the return value will be
+ * thermal_zone_device pointer of the first thermal zone. Caller must
  * check the return value with help of IS_ERR() helper.
  */
 struct thermal_zone_device *
@@ -669,7 +671,7 @@ thermal_zone_of_sensor_register(struct device *dev, int sensor_id, void *data,
 				const struct thermal_zone_of_device_ops *ops)
 {
 	struct device_node *np, *child, *sensor_np;
-	struct thermal_zone_device *tzd = ERR_PTR(-ENODEV);
+	struct thermal_zone_device *first_tzd = NULL;
 	struct __sensor_param *sens_param = NULL;
 
 	np = of_find_node_by_name(NULL, "thermal-zones");
@@ -688,6 +690,10 @@ thermal_zone_of_sensor_register(struct device *dev, int sensor_id, void *data,
 	}
 	sens_param->sensor_data = data;
 	sens_param->ops = ops;
+	INIT_LIST_HEAD(&sens_param->first_tz);
+	sens_param->trip_high = INT_MAX;
+	sens_param->trip_low = INT_MIN;
+	mutex_init(&sens_param->lock);
 	sensor_np = of_node_get(dev->of_node);
 
 	for_each_available_child_of_node(np, child) {
@@ -711,7 +717,7 @@ thermal_zone_of_sensor_register(struct device *dev, int sensor_id, void *data,
 		}
 
 		if (sensor_specs.np == sensor_np && id == sensor_id) {
-			tzd = thermal_zone_of_add_sensor(child, sensor_np,
+			first_tzd = thermal_zone_of_add_sensor(child, sensor_np,
 							 sens_param);
 			of_node_put(sensor_specs.np);
 			of_node_put(child);
@@ -723,9 +729,11 @@ exit:
 	of_node_put(sensor_np);
 	of_node_put(np);
 
-	if (tzd == ERR_PTR(-ENODEV))
+	if (!first_tzd) {
+		first_tzd = ERR_PTR(-ENODEV);
 		kfree(sens_param);
-	return tzd;
+	}
+	return first_tzd;
 }
 EXPORT_SYMBOL_GPL(thermal_zone_of_sensor_register);
 
@@ -747,7 +755,9 @@ EXPORT_SYMBOL_GPL(thermal_zone_of_sensor_register);
 void thermal_zone_of_sensor_unregister(struct device *dev,
 				       struct thermal_zone_device *tzd)
 {
-	struct __thermal_zone *tz;
+	struct __thermal_zone *tz, *next;
+	struct thermal_zone_device *pos;
+	struct list_head *head;
 
 	if (!dev || !tzd || !tzd->devdata)
 		return;
@@ -758,14 +768,20 @@ void thermal_zone_of_sensor_unregister(struct device *dev,
 	if (!tz)
 		return;
 
-	mutex_lock(&tzd->lock);
-	tzd->ops->get_temp = NULL;
-	tzd->ops->get_trend = NULL;
-	tzd->ops->set_emul_temp = NULL;
+	head = &tz->senps->first_tz;
+	list_for_each_entry_safe(tz, next, head, list) {
+		pos = tz->tzd;
+		mutex_lock(&pos->lock);
+		pos->ops->get_temp = NULL;
+		pos->ops->get_trend = NULL;
+		pos->ops->set_emul_temp = NULL;
 
-	kfree(tz->senps);
-	tz->senps = NULL;
-	mutex_unlock(&tzd->lock);
+		list_del(&tz->list);
+		if (list_empty(&tz->senps->first_tz))
+			kfree(tz->senps);
+		tz->senps = NULL;
+		mutex_unlock(&pos->lock);
+	}
 }
 EXPORT_SYMBOL_GPL(thermal_zone_of_sensor_unregister);
 
@@ -1166,6 +1182,7 @@ __init *thermal_of_build_thermal_zone(struct device_node *np)
 	if (!tz)
 		return ERR_PTR(-ENOMEM);
 
+	INIT_LIST_HEAD(&tz->list);
 	ret = of_property_read_u32(np, "polling-delay-passive", &prop);
 	if (ret < 0) {
 		pr_err("missing polling-delay-passive property\n");
@@ -1182,6 +1199,8 @@ __init *thermal_of_build_thermal_zone(struct device_node *np)
 
 	tz->is_wakeable = of_property_read_bool(np,
 					"wake-capable-sensor");
+	tz->default_disable = of_property_read_bool(np,
+					"disable-thermal-zone");
 	/*
 	 * REVIST: for now, the thermal framework supports only
 	 * one sensor per thermal zone. Thus, we are considering
@@ -1377,7 +1396,9 @@ int __init of_parse_thermal_zones(void)
 			kfree(ops);
 			of_thermal_free_zone(tz);
 			/* attempting to build remaining zones still */
+			continue;
 		}
+		tz->tzd = zone;
 	}
 	of_node_put(np);
 
