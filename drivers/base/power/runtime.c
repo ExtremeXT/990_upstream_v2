@@ -1570,8 +1570,11 @@ void pm_runtime_get_suppliers(struct device *dev)
 	idx = device_links_read_lock();
 
 	list_for_each_entry_rcu(link, &dev->links.suppliers, c_node)
-		if (link->flags & DL_FLAG_PM_RUNTIME)
+		if (link->flags & DL_FLAG_PM_RUNTIME) {
+			link->supplier_preactivated = true;
+			refcount_inc(&link->rpm_active);
 			pm_runtime_get_sync(link->supplier);
+		}
 
 	device_links_read_unlock(idx);
 }
@@ -1588,8 +1591,11 @@ void pm_runtime_put_suppliers(struct device *dev)
 	idx = device_links_read_lock();
 
 	list_for_each_entry_rcu(link, &dev->links.suppliers, c_node)
-		if (link->flags & DL_FLAG_PM_RUNTIME)
-			pm_runtime_put(link->supplier);
+		if (link->supplier_preactivated) {
+			link->supplier_preactivated = false;
+			if (refcount_dec_not_one(&link->rpm_active))
+				pm_runtime_put(link->supplier);
+		}
 
 	device_links_read_unlock(idx);
 }
