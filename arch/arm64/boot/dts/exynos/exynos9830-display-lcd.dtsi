@@ -697,7 +697,7 @@
 				mode = <2>;	/* 0: video mode, 1: DP command mode, 2: MIPI command mode */
 				resolution = <1080 2400>;
 				size = <67 150>;	/* 67.284 * 149.52 */
-				timing,refresh = <120>;
+				timing,refresh = <125>;
 				timing,h-porch = <2 2 2>;
 				timing,v-porch = <15 3 1>;
 				timing,dsi-hs-clk = <1110>;	/* <1110> - <2 171 2 -15124> */
@@ -720,6 +720,7 @@
 				cmd_underrun_cnt = <7494>;	/* for underrun detect*/
 				default_mode = <0>;
 				display_mode =
+					<1080 2400 125 1900 1 540 40>,	/* w, h, fps, lpref, dsc_en, slice_w, slice,h */
 					<1080 2400 120 1770 1 540 40>,	/* w, h, fps, lpref, dsc_en, slice_w, slice,h */
 					<1080 2400 60 7494 1 540 40>;
 				hdr_num = <3>;			/* max: 4 */
@@ -737,7 +738,7 @@
 				mode = <2>;	/* 0: video mode, 1: DP command mode, 2: MIPI command mode */
 				resolution = <1080 2400>;
 				size = <67 150>;	/* 67.284 * 149.52 */
-				timing,refresh = <120>;
+				timing,refresh = <125>;
 				timing,h-porch = <2 2 2>;
 				timing,v-porch = <15 3 1>;
 				timing,dsi-hs-clk = <1110>;	/* <1110> - <2 171 2 -15124> */
@@ -760,6 +761,7 @@
 				cmd_underrun_cnt = <7494>;	/* for underrun detect*/
 				default_mode = <0>;
 				display_mode =
+					<1080 2400 125 1900 1 540 40>,	/* w, h, fps, lpref, dsc_en, slice_w, slice,h */
 					<1080 2400 120 1770 1 540 40>,	/* w, h, fps, lpref, dsc_en, slice_w, slice,h */
 					<1080 2400 60 7494 1 540 40>;
 				hdr_num = <3>;			/* max: 4 */

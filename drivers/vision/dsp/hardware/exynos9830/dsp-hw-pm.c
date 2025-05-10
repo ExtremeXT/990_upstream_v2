@@ -613,11 +613,11 @@ int dsp_pm_boost_enable(struct dsp_pm *pm)
 		goto p_err_dvfs;
 
 	mutex_lock(&pm->lock);
-	pm_qos_update_request(&pm->mif_qos, 2730000);
+	pm_qos_update_request(&pm->mif_qos, 3172000);
 	pm_qos_update_request(&pm->int_qos, 533000);
 	//pm_qos_update_request(&pm->cl0_qos, 1950000);
 	//pm_qos_update_request(&pm->cl1_qos, 2314000);
-	pm_qos_update_request(&pm->cl2_qos, 2730000);
+	pm_qos_update_request(&pm->cl2_qos, 3016000);
 	mutex_unlock(&pm->lock);
 
 	dsp_info("boost mode of pm is enabled\n");

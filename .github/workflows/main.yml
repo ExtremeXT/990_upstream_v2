@@ -1,0 +1,49 @@
+name: Kernel Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do repositório
+      uses: actions/checkout@v4
+
+    - name: Instalar dependências essenciais
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          apt-utils \
+          libarchive-tools \
+          build-essential \
+          libncurses-dev \
+          bison \
+          flex \
+          libssl-dev \
+          bc \
+          git \
+          make \
+          binutils-aarch64-linux-gnu \
+          binutils-arm-linux-gnueabi
+    - name: Verificar permissão do build.sh
+      run: chmod +x build.sh
+
+    - name: Executar script de compilação
+      run: |
+        bash build.sh -m r8s -k n -r n || { echo "Erro ao executar build.sh"; cat build.sh; exit 1; }
+    - name: Upload Kernel Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-artifacts
+        path: |
+          build/out/r8s/Image
+          build/out/r8s/dtb.img
+          build/out/r8s/dtbo.img
+          build/out/r8s/boot.img
+          build/out/r8s/zip/*.zip
