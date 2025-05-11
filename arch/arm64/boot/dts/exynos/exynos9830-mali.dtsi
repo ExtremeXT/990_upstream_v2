@@ -1,5 +1,5 @@
 /*
- * SAMSUNG EXYNOS9830 MALI device tree sourceA
+ * SAMSUNG EXYNOS9810 MALI device tree sourceA
  *
  * Copyright (c) 2019 Samsung Electronics Co., Ltd.
  *		http://www.samsung.com
@@ -27,10 +27,11 @@
 		#cooling-cells = <2>; /* min followed by max */
 		governor = "interactive";
 		interactive_info = <377000 94 0>;
-		gpu_dvfs_table_size = <7 8>; /*<row col>*/
+		gpu_dvfs_table_size = <8 8>; /*<row col>*/
 		/*  8 columns      freq  down   up  stay  mif   little  middle   big  */
 		gpu_dvfs_table = <
-			897000    78  100   5  2730000  1300000       0 1690000
+			898000    78  100   5  2730000  1300000 1404000 1690000
+			832000    78  100   5  2730000  1300000       0 1690000
 			702000    78   90   5  2535000  1300000       0       0
 			572000    78   90   1  2028000  1300000       0       0
 			455000    75   85   1  1539000  1300000       0       0
@@ -38,10 +39,11 @@
 			260000    78   93   1  1352000        0       0       0
 			156000     0   93   1   845000        0       0       0 >;
 		/* gpu-cl-pmqos-table-size */
-		gpu_cl_pmqos_table_size = <7 5>; /*<row col>*/
+		gpu_cl_pmqos_table_size = <8 5>; /*<row col>*/
 		/*  g3d-freq  mif-min  mif-max  lit-min lit-max  mid-min  mid-max  big-min  big-max  */
 		gpu_cl_pmqos_table = <
-			897000    2028000  1300000       0 1690000
+			898000    2028000  1300000 1404000 1690000
+			832000    2028000  1300000       0 1690000
 			702000    1539000  1300000       0       0
 			572000    1539000  1300000       0       0
 			455000    1352000  1300000       0       0
@@ -52,17 +54,17 @@
 		gpu_pmqos_cpu_cluster_num = <3>;
 		gpu_pmu_status_reg_offset = <0x2204>;
 		gpu_pmu_status_local_pwr_mask = <0x1>; /*0x1 << 0*/
-		gpu_max_clock = <897000>;
-		gpu_max_clock_limit = <897000>;
+		gpu_max_clock = <898000>;
+		gpu_max_clock_limit = <898000>;
 		gpu_min_clock = <156000>;
 		gpu_dvfs_start_clock = <260000>;
 		gpu_dvfs_bl_config_clock = <156000>;
-		gpu_default_voltage = <750000>;
+		gpu_default_voltage = <800000>;
 		gpu_cold_minimum_vol = <0>;
-		gpu_voltage_offset_margin = <30000>;
+		gpu_voltage_offset_margin = <37500>;
 		gpu_tmu_control = <1>;
-		gpu_temp_throttling_level_num = <8>;
-		gpu_temp_throttling = <897000 702000 572000 455000 377000 260000>;
+		gpu_temp_throttling_level_num = <7>;
+		gpu_temp_throttling = <898000 832000 702000 572000 455000 377000 260000>;
 		gpu_power_coeff = <625>;
 		gpu_dvfs_time_interval = <5>; /*1 tick : 10ms*/
 		gpu_default_wakeup_lock = <1>;
@@ -76,10 +78,10 @@
 		gpu_runtime_pm_delay_time = <50>;
 		gpu_dvfs_polling_time = <30>;
 		gpu_pmqos_int_disable = <1>;
-		gpu_pmqos_compute_mif_max_clock = <2730000>;
+		gpu_pmqos_compute_mif_max_clock = <2535000>;
 		gpu_pmqos_mif_max_clock = <2730000>;
 		gpu_pmqos_mif_max_clock_base = <650000>;
-		gpu_pmqos_g3d_clock = <897000 702000>;
+		gpu_pmqos_g3d_clock = <898000 832000>;
 		gpu_pmqos_cl2_max_clock = <1378000 1690000>;
 		gpu_pmqos_cl1_max_clock = <1690000 0>;
 		gpu_cl_dvfs_start_base = <377000>;
