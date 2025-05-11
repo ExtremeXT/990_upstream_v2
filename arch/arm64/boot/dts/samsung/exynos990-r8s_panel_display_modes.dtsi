@@ -30,9 +30,9 @@
 					width = <1080>;
 					height = <2400>;
 					/* timing parameters */
-					refresh_rate = <125>;			/* logical refresh rate */
+					refresh_rate = <60>;			/* logical refresh rate */
 					refresh_mode = <0>;				/* 0:NS, 1:HS */
-					panel_refresh_rate = <125>;		/* panel internal refresh rate */
+					panel_refresh_rate = <60>;		/* panel internal refresh rate */
 					panel_refresh_mode = <0>;		/* 0:NS, 1:HS */
 					panel_te_st = <0>;				/* te rising */
 					panel_te_ed = <0>;				/* te falling */
@@ -66,9 +66,9 @@
 					width = <1080>;
 					height = <2400>;
 					/* timing parameters */
-					refresh_rate = <125>;			/* logical refresh rate */
+					refresh_rate = <120>;			/* logical refresh rate */
 					refresh_mode = <1>;				/* 0:NS, 1:HS */
-					panel_refresh_rate = <125>;		/* panel internal refresh rate */
+					panel_refresh_rate = <120>;		/* panel internal refresh rate */
 					panel_refresh_mode = <1>;		/* 0:NS, 1:HS */
 					panel_te_st = <0>;				/* te rising */
 					panel_te_ed = <0>;				/* te falling */
@@ -90,9 +90,9 @@
 					width = <1080>;
 					height = <2400>;
 					/* timing parameters */
-					refresh_rate = <96>;			/* logical refresh rate */
+					refresh_rate = <60>;			/* logical refresh rate */
 					refresh_mode = <1>;				/* 0:NS, 1:HS */
-					panel_refresh_rate = <96>;		/* panel internal refresh rate */
+					panel_refresh_rate = <60>;		/* panel internal refresh rate */
 					panel_refresh_mode = <1>;		/* 0:NS, 1:HS */
 					panel_te_st = <0>;				/* te rising */
 					panel_te_ed = <0>;				/* te falling */
