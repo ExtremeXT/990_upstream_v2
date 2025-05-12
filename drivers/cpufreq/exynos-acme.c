@@ -1130,7 +1130,7 @@ void sec_bootstat_get_cpuinfo(int *freq, int *online)
 /*********************************************************************
  *                  INITIALIZE EXYNOS CPUFREQ DRIVER                 *
  *********************************************************************/
-static int cpu_undervolt = 100000;
+static int cpu_undervolt = 115000;
 static void print_domain_info(struct exynos_cpufreq_domain *domain)
 {
 	int i;
@@ -1575,8 +1575,8 @@ static __init int cpufreq_read_mif_min(char *mif_min)
 }
 __setup("mif_min=", cpufreq_read_mif_min);
 
-/*Overclocking little cores to 2106 MHz*/
-unsigned long arg_cpu_max_c1 = 2106000; /*max_cpu_freq=2106 MHz for little cores*/
+/*Overclocking little cores to 1950 MHz*/
+unsigned long arg_cpu_max_c1 = 1950000; /*max_cpu_freq=1950 MHz for little cores*/
 
 static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1) /*integer remains in memory after function call*/
 {
@@ -1593,8 +1593,8 @@ static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1) /*integer remains in
 }
 __setup("cpu_max_c1=", cpufreq_read_cpu_max_c1);
 
-/*Overclocking perf cores to 3000 MHz*/
-unsigned long arg_cpu_max_c2 = 3000000; /*max_cpu_freq=3000 MHz*/
+/*Overclocking perf cores to 1508 MHz*/
+unsigned long arg_cpu_max_c2 = 1508000; /*max_cpu_freq=1508 MHz*/
 
 static __init int cpufreq_read_cpu_max_c2(char *cpu_max_c2)
 {
@@ -1611,8 +1611,8 @@ static __init int cpufreq_read_cpu_max_c2(char *cpu_max_c2)
 }
 __setup("cpu_max_c2=", cpufreq_read_cpu_max_c2);
 
-/*Overclocking prime cores to 3016 MHz*/
-unsigned long arg_cpu_max_c3 = 3016000; /*max_cpu_freq=3016 MHz*/
+/*Overclocking prime cores to 2002 MHz*/
+unsigned long arg_cpu_max_c3 = 2002000; /*max_cpu_freq=2002 MHz*/
 
 static __init int cpufreq_read_cpu_max_c3(char *cpu_max_c3)
 {
