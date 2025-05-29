@@ -17,6 +17,7 @@ Options:
     -m, --model [value]    Specify the model code of the phone
     -k, --ksu [y/N]        Include KernelSU
     -r, --recovery [y/N]   Compile kernel for an Android Recovery
+    -d, --dtbs [y/N]	   Compile only DTBs
 EOF
 }
 
@@ -32,6 +33,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --recovery|-r)
             RECOVERY_OPTION="$2"
+            shift 2
+            ;;
+        --dtbs|-d)
+            DTB_OPTION="$2"
             shift 2
             ;;
         *)\
@@ -123,6 +128,10 @@ if [[ "$KSU_OPTION" == "y" ]]; then
     KSU=ksu.config
 fi
 
+if [[ "$DTB_OPTION" == "y" ]]; then
+	DTBS=y
+fi
+
 rm -rf build/out/$MODEL
 mkdir -p build/out/$MODEL/zip/files
 mkdir -p build/out/$MODEL/zip/META-INF/com/google/android
@@ -142,12 +151,22 @@ else
 fi
 
 echo "-----------------------------------------------"
-echo "Building kernel using "$MODEL.config""
+if [ -z "$DTBS" ]; then
+    echo "Building kernel using "$MODEL.config""
+else
+    echo "Building DTBs using "$MODEL.config""
+fi
 echo "Generating configuration file..."
 echo "-----------------------------------------------"
 make ${MAKE_ARGS} -j$CORES exynos9830_defconfig $MODEL.config $KSU $RECOVERY || abort
 
-echo "Building kernel..."
+if [ ! -z "$DTBS" ]; then
+    MAKE_ARGS="$MAKE_ARGS dtbs"
+    echo "Building DTBs"
+else
+    echo "Building kernel..."
+fi
+
 echo "-----------------------------------------------"
 make ${MAKE_ARGS} -j$CORES || abort
 
@@ -171,7 +190,9 @@ OUTPUT_FILE=build/out/$MODEL/boot.img
 
 ## Build auxiliary boot.img files
 # Copy kernel to build
-cp out/arch/arm64/boot/Image build/out/$MODEL
+if [ -z "$DTBS" ]; then
+    cp out/arch/arm64/boot/Image build/out/$MODEL
+fi
 
 # Build dtb
 echo "Building common exynos9830 Device Tree Blob Image..."
@@ -183,7 +204,7 @@ echo "Building Device Tree Blob Output Image for "$MODEL"..."
 echo "-----------------------------------------------"
 ./toolchain/mkdtimg cfg_create build/out/$MODEL/dtbo.img build/dtconfigs/$MODEL.cfg -d out/arch/arm64/boot/dts/samsung
 
-if [ -z "$RECOVERY" ]; then
+if [ -z "$RECOVERY" ] && [ -z "$DTBS" ]; then
     # Build ramdisk
     echo "Building RAMDisk..."
     echo "-----------------------------------------------"
