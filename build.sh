@@ -15,7 +15,7 @@ unset_flags()
 Usage: $(basename "$0") [options]
 Options:
     -m, --model [value]    Specify the model code of the phone
-    -k, --ksu [y/N]        Include KernelSU
+    -k, --ksu [y/N]        Include KernelSU with KernelPatch Module
     -r, --recovery [y/N]   Compile kernel for an Android Recovery
     -d, --dtbs [y/N]	   Compile only DTBs
 EOF
@@ -121,7 +121,7 @@ if [[ "$RECOVERY_OPTION" == "y" ]]; then
 fi
 
 if [ -z $KSU_OPTION ]; then
-    read -p "Include KernelSU (y/N): " KSU_OPTION
+    read -p "Include KernelSU with KPM (y/N): " KSU_OPTION
 fi
 
 if [[ "$KSU_OPTION" == "y" ]]; then
@@ -129,7 +129,7 @@ if [[ "$KSU_OPTION" == "y" ]]; then
 fi
 
 if [[ "$DTB_OPTION" == "y" ]]; then
-	DTBS=y
+    DTBS=y
 fi
 
 rm -rf build/out/$MODEL
@@ -140,9 +140,9 @@ mkdir -p build/out/$MODEL/zip/META-INF/com/google/android
 echo "-----------------------------------------------"
 echo "Defconfig: "$KERNEL_DEFCONFIG""
 if [ -z "$KSU" ]; then
-    echo "KSU: N"
+    echo "KSU with KPM: N"
 else
-    echo "KSU: $KSU"
+    echo "KSU with KPM: Y"
 fi
 if [ -z "$RECOVERY" ]; then
     echo "Recovery: N"
@@ -170,6 +170,77 @@ fi
 echo "-----------------------------------------------"
 make ${MAKE_ARGS} -j$CORES || abort
 
+# KPM Injection (always done when KSU is enabled)
+
+if [[ "$KSU_OPTION" == "y" && -z "$DTBS" ]]; then
+    echo "-----------------------------------------------"
+    echo "Performing KPM Injection..."
+    echo "-----------------------------------------------"
+    
+    mkdir -p build/out/$MODEL/SukiSUPatch
+    
+    # Fix: Check if Image exists and copy it correctly
+    if [ -f "out/arch/arm64/boot/Image" ]; then
+        cp out/arch/arm64/boot/Image build/out/$MODEL/SukiSUPatch/Image
+    else
+        echo "Error: Kernel Image not found at out/arch/arm64/boot/Image"
+        echo "Checking for gzipped file..."
+        
+        # Check for gzipped image
+        if [ -f "out/arch/arm64/boot/Image.gz" ]; then
+            echo "Found Image.gz, extracting..."
+            gunzip -c out/arch/arm64/boot/Image.gz > ~/SukiSUPatch/Image
+        else
+            echo "No kernel image found. KPM Injection cannot continue."
+            abort
+        fi
+    fi
+    
+    cd build/out/$MODEL/SukiSUPatch/
+    
+    TAG=$(curl -s https://api.github.com/repos/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases | \
+        jq -r 'map(select(.prerelease)) | first | .tag_name')
+    echo "Latest KPM patch tag is: $TAG"
+    
+    curl -Ls -o patch_linux "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/$TAG/patch_linux"
+    chmod +x patch_linux
+    
+    # Make sure Image exists before proceeding
+    if [ ! -f "Image" ]; then
+        echo "Error: Image file not found for patching"
+        cd - > /dev/null
+        rm -rf build/out/$MODEL/SukiSUPatch/
+        abort
+    fi
+    
+    rm -rf out/arch/arm64/boot/Image.gz 2>/dev/null
+    
+    ./patch_linux
+    
+    # Only proceed with file operations if patch was successful
+    if [ -f "oImage" ]; then
+        rm -rf ./Image
+        mv -f oImage Image
+        gzip -k Image
+        
+        # Make sure the destination directory exists
+        mkdir -p "$(dirname "$(readlink -f "$OLDPWD/out/arch/arm64/boot/Image.gz")")"
+        
+        cp build/out/$MODEL/SukiSUPatch/Image.gz "$OLDPWD/out/arch/arm64/boot/Image.gz"
+        cp build/out/$MODEL/SukiSUPatch/Image "$OLDPWD/out/arch/arm64/boot/Image"
+        
+        echo "KPM Injection completed successfully"
+    else
+        echo "Error: KPM patch did not produce output file"
+    fi
+    
+    cd - > /dev/null
+    
+    echo "-----------------------------------------------"
+fi
+
+## Build auxiliary boot.img files
+
 # Define constant variables
 DTB_PATH=build/out/$MODEL/dtb.img
 KERNEL_PATH=build/out/$MODEL/Image
@@ -188,7 +259,6 @@ PAGESIZE=2048
 RAMDISK=build/out/$MODEL/ramdisk.cpio.gz
 OUTPUT_FILE=build/out/$MODEL/boot.img
 
-## Build auxiliary boot.img files
 # Copy kernel to build
 if [ -z "$DTBS" ]; then
     cp out/arch/arm64/boot/Image build/out/$MODEL
@@ -236,7 +306,7 @@ if [ -z "$RECOVERY" ] && [ -z "$DTBS" ]; then
     DATE=`date +"%d-%m-%Y_%H-%M-%S"`
 
     if [[ "$KSU_OPTION" == "y" ]]; then
-        NAME="$version"_"$MODEL"_UNOFFICIAL_KSU_"$DATE".zip
+        NAME="$version"_"$MODEL"_UNOFFICIAL_KSU_KPM_"$DATE".zip
     else
         NAME="$version"_"$MODEL"_UNOFFICIAL_"$DATE".zip
     fi

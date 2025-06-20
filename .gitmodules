@@ -1,3 +1,4 @@
-[submodule "KernelSU-Next"]
-	path = KernelSU-Next
-	url = https://github.com/KernelSU-Next/KernelSU-Next
+[submodule "SukiSU-Ultra"]
+	path = KernelSU
+	url = https://github.com/Kingslayer9988/SukiSU-Ultra.git
+	branch = exynos990v2

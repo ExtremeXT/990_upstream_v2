@@ -42,6 +42,9 @@
 *.tab.[ch]
 *.tar
 *.xz
+*.orig
+*.rej
+
 Module.symvers
 modules.builtin
 
@@ -131,3 +134,9 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+#Building
+out/
+build/
+toolchain/
+toolchains/
